@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "Financely Mobile",
+    "slug": "financely-mobile",
+    "scheme": "financely",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {"supportsTablet": false},
+    "android": {"edgeToEdgeEnabled": true}
+  }
+}
