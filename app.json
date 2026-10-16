@@ -7,7 +7,14 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "ios": {"supportsTablet": false},
-    "android": {"edgeToEdgeEnabled": true}
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "edgeToEdgeEnabled": true
+    },
+    "plugins": [
+      "expo-status-bar"
+    ]
   }
 }
