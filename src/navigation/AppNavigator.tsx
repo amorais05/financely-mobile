@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../constants/theme';
+import { logout, restoreSession, type Session } from '../services/auth';
 import type { Screen, Tab } from '../types';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import LoginScreen from '../screens/LoginScreen';
@@ -15,15 +16,36 @@ import CategoriesScreen from '../screens/CategoriesScreen';
 
 const tabs: Tab[] = ['Início', 'Lançamentos', 'Novo', 'Calendário', 'Perfil'];
 
-/** Navegação demonstrativa para a entrega da estrutura.
- * A autenticação real e a navegação definitiva serão implementadas posteriormente. */
+/** Navegação com acesso privado condicionado à sessão salva com segurança. */
 export default function AppNavigator() {
   const [screen, setScreen] = useState<Screen | 'Boas-vindas'>('Boas-vindas');
+  const [session, setSession] = useState<Session | null>(null);
+  const [restoring, setRestoring] = useState(true);
+  useEffect(() => {
+    let active = true;
+    restoreSession().then(saved => {
+      if (!active) return;
+      setSession(saved);
+      if (saved) setScreen('Início');
+    }).finally(() => { if (active) setRestoring(false); });
+    return () => { active = false; };
+  }, []);
+  async function handleLogout() {
+    try {
+      await logout();
+      setSession(null);
+      setScreen('Boas-vindas');
+    } catch {
+      // Não libera acesso nem limpa a sessão visual se falhar a remoção segura.
+    }
+  }
+  if (restoring) return <SafeAreaView style={styles.root}><ActivityIndicator style={{ flex: 1 }} color={theme.primary} size="large" /></SafeAreaView>;
   const renderScreen = () => {
-    switch (screen) {
+    const currentScreen = !session && (tabs.includes(screen as Tab) || screen === 'Contas' || screen === 'Categorias') ? 'Login' : screen;
+    switch (currentScreen) {
       case 'Boas-vindas': return <WelcomeScreen />;
-      case 'Login': return <LoginScreen />;
-      case 'Cadastro': return <RegisterScreen />;
+      case 'Login': return <LoginScreen onLogin={saved => { setSession(saved); setScreen('Início'); }} />;
+      case 'Cadastro': return <RegisterScreen onRegistered={() => setScreen('Login')} />;
       case 'Início': return <DashboardScreen />;
       case 'Lançamentos': return <TransactionsScreen />;
       case 'Novo': return <NewTransactionScreen />;
@@ -33,7 +55,7 @@ export default function AppNavigator() {
       case 'Categorias': return <CategoriesScreen />;
     }
   };
-  const privateArea = tabs.includes(screen as Tab) || screen === 'Contas' || screen === 'Categorias';
+  const privateArea = !!session && (tabs.includes(screen as Tab) || screen === 'Contas' || screen === 'Categorias');
   return (
     <SafeAreaView style={styles.root}>
       <View style={styles.main}>{renderScreen()}</View>
@@ -42,7 +64,6 @@ export default function AppNavigator() {
           <Action label="Boas-vindas" onPress={() => setScreen('Boas-vindas')} />
           <Action label="Login" onPress={() => setScreen('Login')} />
           <Action label="Cadastro" onPress={() => setScreen('Cadastro')} />
-          <Action label="Ver protótipo" onPress={() => setScreen('Início')} />
         </View>
       )}
       {privateArea && (
@@ -51,7 +72,7 @@ export default function AppNavigator() {
             <View style={styles.row}>
               <Action label="Contas" onPress={() => setScreen('Contas')} />
               <Action label="Categorias" onPress={() => setScreen('Categorias')} />
-              <Action label="Sair" onPress={() => setScreen('Boas-vindas')} />
+              <Action label="Sair" onPress={handleLogout} />
             </View>
           ) : null}
           <View style={styles.row}>{tabs.map(tab => <Action key={tab} label={tab === 'Novo' ? '+' : tab} selected={screen === tab} onPress={() => setScreen(tab)} />)}</View>
