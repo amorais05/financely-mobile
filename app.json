@@ -10,9 +10,6 @@
     "ios": {
       "supportsTablet": false
     },
-    "android": {
-      "edgeToEdgeEnabled": true
-    },
     "plugins": [
       "expo-status-bar"
     ]
