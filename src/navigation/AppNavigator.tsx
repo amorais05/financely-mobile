@@ -46,7 +46,7 @@ export default function AppNavigator() {
       case 'Boas-vindas': return <WelcomeScreen />;
       case 'Login': return <LoginScreen onLogin={saved => { setSession(saved); setScreen('Início'); }} />;
       case 'Cadastro': return <RegisterScreen onRegistered={() => setScreen('Login')} />;
-      case 'Início': return <DashboardScreen />;
+      case 'Início': return session ? <DashboardScreen session={session} /> : <LoginScreen onLogin={saved => { setSession(saved); setScreen('Início'); }} />;
       case 'Lançamentos': return <TransactionsScreen />;
       case 'Novo': return <NewTransactionScreen />;
       case 'Calendário': return <CalendarScreen />;
