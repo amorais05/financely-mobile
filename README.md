@@ -3,85 +3,45 @@
 **Disciplina:** Desenvolvimento para Dispositivos Móveis — Sistemas de Informação, Unochapecó (2026)  
 **Integrantes:** Amanda Morais Martinelli e Michelli Riffel Walker
 
-## Proposta
+## Objetivo
+Aplicativo de gestão financeira pessoal em React Native, Expo SDK 58 e TypeScript, desenvolvido como extensão do Financely Web. Utiliza o mesmo backend/API e as mesmas contas de usuário.
 
-Aplicativo mobile para organização financeira pessoal. É uma extensão do **Financely Web**: a proposta é compartilhar **a mesma conta, API e dados** entre as versões Web e Mobile.
-
-## Situação atual
-
-**Entrega da estrutura inicial do trabalho final.** Este repositório contém o esqueleto do aplicativo em React Native, Expo e TypeScript, telas iniciais e uma navegação **demonstrativa**. As telas ainda exibem textos de planejamento: login, persistência, CRUD, calendário efetivo e sincronização com o backend **não estão implementados**. O botão “Ver protótipo” não autentica o usuário.
-
-## Tecnologias previstas
-
-- React Native e Expo
-- TypeScript
-- API já existente do Financely (integração futura)
+## Estado da implementação (22/10/2026)
+- Estrutura do aplicativo, navegação e telas iniciais disponíveis.
+- Login e cadastro integrados à API do Financely Web.
+- Token de sessão armazenado via Expo SecureStore, com restauração de sessão e logout local.
+- Login e navegação testados em iPhone com Expo.
+- Telas de lançamentos, contas, categorias, calendário e perfil ainda em desenvolvimento.
+- Dashboard com consultas financeiras reais em desenvolvimento na branch `feature/dashboard-real-data`, ainda não incorporada à `main`.
+- Recursos nativos de câmera, geolocalização, permissões e notificações planejados para a etapa de Michelli; não estão concluídos.
 
 ## Como executar
-
-Requisitos: Node.js e npm. No terminal, dentro da pasta do projeto:
-
 ```bash
 npm install
 npx expo start
 ```
+Abra no Expo Go compatível com o SDK 58. Configure `EXPO_PUBLIC_API_URL` se necessário; o endereço padrão da API é `https://financely-app.onrender.com`. O servidor deve estar ativo para login e cadastro.
 
-Abra o projeto no Expo Go compatível com a versão do SDK ou use um emulador Android. Antes de executar, pode-se configurar `EXPO_PUBLIC_API_URL` com base no `.env.example`.
+## Estrutura
+- `App.tsx`: entrada do aplicativo
+- `src/navigation/`: navegação e controle de sessão
+- `src/screens/`: telas
+- `src/services/`: autenticação e API
+- `src/components/`: componentes reutilizáveis
+- `src/constants/`: estilos e identidade visual
+- `docs/`: documentação do projeto
 
-## Organização do projeto
+## Divisão do trabalho
+**Amanda:** estrutura, autenticação integrada ao Web, armazenamento seguro da sessão e integração financeira.  
+**Michelli:** câmera, geolocalização, permissões e notificações locais, em etapa de implementação.
 
-```text
-financely-mobile/
-├── App.tsx                     # Entrada da aplicação
-├── src/
-│   ├── components/             # Componentes reutilizáveis
-│   ├── constants/              # Paleta e estilos
-│   ├── navigation/             # Navegação demonstrativa
-│   ├── screens/                # Telas do aplicativo
-│   ├── services/               # Integração futura com API
-│   └── types/                  # Modelos e tipos TypeScript
-├── docs/                       # Requisitos e arquitetura
-├── .env.example
-├── .gitignore
-├── app.json
-├── package.json
-└── tsconfig.json
-```
-
-## Telas previstas
-
-Boas-vindas, Login, Cadastro, Dashboard, Lançamentos, Novo lançamento, Calendário, Perfil, Contas e Categorias. Inclusões, edições, filtros e confirmações de exclusão serão detalhados durante a implementação.
-
-## Integração planejada
-
-- [Financely Web — código](https://github.com/amorais05/financely)
-- [Financely Web — aplicação](https://financely-app.vercel.app)
-- [Backend / API](https://financely-app.onrender.com)
+## Referências
+- [Financely Web](https://financely-app.vercel.app)
+- [Backend/API](https://financely-app.onrender.com)
 - [Protótipo Figma](https://www.figma.com/design/zKUyXPjYlK9jF093mcPjQ8/Sem-t%C3%ADtulo?node-id=0-1)
+- [Planejamento no Notion](https://app.notion.com/p/3d7a00b7303881d29c78dce3782bcd3b)
 
 ## Próximas etapas
+Implementar recursos nativos, concluir integração dos dados financeiros, validar segurança das rotas e testar fluxos completos antes da entrega final.
 
-1. Implementar autenticação compartilhada com a versão Web.
-2. Implementar dashboard e listagem de lançamentos.
-3. Implementar cadastro, edição e exclusão de lançamentos.
-4. Gerenciar contas e categorias.
-5. Implementar calendário, filtros, validações e testes.
-
-> Este repositório não contém senhas, tokens nem chaves da API.
-
-
-## Atualização Expo SDK 58
-
-O `package.json` foi alinhado à linha Expo SDK 58 (`expo ~58.0.16`, `react 19.3.0`, `react-native 0.88.0`, `expo-status-bar ~58.0.3`). O `package-lock.json` do SDK 57 foi removido e **deve ser regenerado e commitado após a instalação local**. Esta alteração ainda precisa de validação em dispositivo.
-
-Na raiz do projeto, com Node.js compatível e npm:
-
-```bash
-npm install
-npx expo install --fix
-npx expo-doctor
-npm run typecheck
-npx expo start --clear
-```
-
-Teste no Expo Go atualizado para o SDK 58 ou em development build compatível. Verifique abertura do app, navegação e console sem erros. Após os comandos, inclua o `package-lock.json` atualizado em novo commit e envie ao GitHub (`git add package.json package-lock.json && git commit -m "chore: atualiza lockfile Expo 58" && git push`). Não use `npm ci` antes de regenerar o lockfile.
+**Observação:** não armazene senhas, tokens, credenciais de banco ou segredos no repositório.
