@@ -68,3 +68,20 @@ Boas-vindas, Login, Cadastro, Dashboard, Lançamentos, Novo lançamento, Calend�
 5. Implementar calendário, filtros, validações e testes.
 
 > Este repositório não contém senhas, tokens nem chaves da API.
+
+
+## Atualização Expo SDK 58
+
+O `package.json` foi alinhado à linha Expo SDK 58 (`expo ~58.0.16`, `react 19.3.0`, `react-native 0.88.0`, `expo-status-bar ~58.0.3`). O `package-lock.json` do SDK 57 foi removido e **deve ser regenerado e commitado após a instalação local**. Esta alteração ainda precisa de validação em dispositivo.
+
+Na raiz do projeto, com Node.js compatível e npm:
+
+```bash
+npm install
+npx expo install --fix
+npx expo-doctor
+npm run typecheck
+npx expo start --clear
+```
+
+Teste no Expo Go atualizado para o SDK 58 ou em development build compatível. Verifique abertura do app, navegação e console sem erros. Após os comandos, inclua o `package-lock.json` atualizado em novo commit e envie ao GitHub (`git add package.json package-lock.json && git commit -m "chore: atualiza lockfile Expo 58" && git push`). Não use `npm ci` antes de regenerar o lockfile.
