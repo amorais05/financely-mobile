@@ -13,7 +13,7 @@ Aplicativo de gestão financeira pessoal em React Native, Expo SDK 58 e TypeScri
 - Login e navegação testados em iPhone com Expo.
 - Telas de lançamentos, contas, categorias, calendário e perfil ainda em desenvolvimento.
 - Dashboard com consultas financeiras reais em desenvolvimento na branch `feature/dashboard-real-data`, ainda não incorporada à `main`.
-- Recursos nativos de câmera, geolocalização, permissões e notificações planejados para a etapa de Michelli; não estão concluídos.
+- Recursos nativos integrados à `main`: câmera para comprovantes, localização em primeiro plano, permissões contextuais e notificações locais. Câmera, localização e notificações testadas em dispositivo real pela dupla; testes adicionais de recusa de permissões e validação automatizada permanecem pendentes.
 
 ## Como executar
 ```bash
@@ -29,11 +29,11 @@ Abra no Expo Go compatível com o SDK 58. Configure `EXPO_PUBLIC_API_URL` se nec
 - `src/services/`: autenticação e API
 - `src/components/`: componentes reutilizáveis
 - `src/constants/`: estilos e identidade visual
-- `docs/`: documentação do projeto
+- `docs/`: documentação do projeto, incluindo `recursos-nativos.md`
 
 ## Divisão do trabalho
 **Amanda:** estrutura, autenticação integrada ao Web, armazenamento seguro da sessão e integração financeira.  
-**Michelli:** câmera, geolocalização, permissões e notificações locais, em etapa de implementação.
+**Michelli:** câmera, geolocalização, permissões e notificações locais implementadas e integradas à `main` (PR #1).
 
 ## Referências
 - [Financely Web](https://financely-app.vercel.app)
@@ -42,6 +42,6 @@ Abra no Expo Go compatível com o SDK 58. Configure `EXPO_PUBLIC_API_URL` se nec
 - [Planejamento no Notion](https://app.notion.com/p/3d7a00b7303881d29c78dce3782bcd3b)
 
 ## Próximas etapas
-Implementar recursos nativos, concluir integração dos dados financeiros, validar segurança das rotas e testar fluxos completos antes da entrega final.
+Concluir integração dos dados financeiros, validar segurança das rotas, testar cenários de permissões negadas e executar verificações automatizadas antes da entrega final.
 
 **Observação:** não armazene senhas, tokens, credenciais de banco ou segredos no repositório.
