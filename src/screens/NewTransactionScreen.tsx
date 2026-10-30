@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   ActivityIndicator,
   Pressable,
@@ -49,6 +50,7 @@ export default function NewTransactionScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -171,14 +173,35 @@ export default function NewTransactionScreen() {
 
         <View style={styles.field}>
           <Text style={styles.label}>Data</Text>
-          <TextInput
-            value={date}
-            onChangeText={setDate}
-            placeholder="AAAA-MM-DD"
-            autoCapitalize="none"
-            style={styles.input}
-            placeholderTextColor={theme.muted}
-          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Selecionar data"
+            style={[styles.input, styles.dateInput]}
+            onPress={() => setShowDatePicker(!showDatePicker)}
+          >
+            <Text style={styles.dateText}>
+              {date.split('-').reverse().join('/')}
+            </Text>
+            <Text style={styles.calendarIcon}>📅</Text>
+          </Pressable>
+
+          {showDatePicker && (
+            <DateTimePicker
+              value={new Date(`${date}T12:00:00`)}
+              mode="date"
+              display="compact"
+              locale="pt-BR"
+              onChange={(_, selectedDate) => {
+                if (selectedDate) {
+                  const year = selectedDate.getFullYear();
+                  const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                  const day = String(selectedDate.getDate()).padStart(2, '0');
+                  setDate(`${year}-${month}-${day}`);
+                }
+                setShowDatePicker(false);
+              }}
+            />
+          )}
         </View>
 
         <View style={styles.field}>
@@ -305,6 +328,14 @@ const styles = StyleSheet.create({
     color: theme.text,
     fontSize: 15,
   },
+  dateInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 0,
+  },
+  dateText: { color: theme.text, fontSize: 15 },
+  calendarIcon: { fontSize: 20 },
   descriptionInput: { minHeight: 76, paddingTop: 13, textAlignVertical: 'top' },
   loadingBox: { alignItems: 'center', gap: 8, paddingVertical: 8 },
   helper: { color: theme.muted, fontSize: 12, lineHeight: 18 },
