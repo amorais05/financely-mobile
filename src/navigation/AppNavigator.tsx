@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, AppState, type AppStateStatus, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../constants/theme';
 import { logout, restoreSession, type Session } from '../services/auth';
@@ -28,6 +28,8 @@ export default function AppNavigator() {
   const [screen, setScreen] = useState<Screen | 'Boas-vindas'>('Boas-vindas');
   const [session, setSession] = useState<Session | null>(null);
   const [restoring, setRestoring] = useState(true);
+  const [syncVersion, setSyncVersion] = useState(0);
+  const appState = useRef<AppStateStatus>(AppState.currentState);
 
   useEffect(() => {
     let active = true;
@@ -40,6 +42,25 @@ export default function AppNavigator() {
       .finally(() => { if (active) setRestoring(false); });
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextState => {
+      const wasAway = appState.current === 'inactive' || appState.current === 'background';
+      appState.current = nextState;
+      if (session && wasAway && nextState === 'active') {
+        setSyncVersion(version => version + 1);
+      }
+    });
+    return () => subscription.remove();
+  }, [session]);
+
+  function openTab(tab: Tab) {
+    if (screen === tab) {
+      setSyncVersion(version => version + 1);
+      return;
+    }
+    setScreen(tab);
+  }
 
   async function handleLogout() {
     try {
@@ -86,7 +107,7 @@ export default function AppNavigator() {
 
   return (
     <SafeAreaView style={styles.root}>
-      <View style={styles.main}>{renderScreen()}</View>
+      <View key={`${String(currentScreen)}-${syncVersion}`} style={styles.main}>{renderScreen()}</View>
 
       {!privateArea && (
         <View style={styles.authBar}>
@@ -131,7 +152,7 @@ export default function AppNavigator() {
                   accessibilityRole="tab"
                   accessibilityLabel={tab.label}
                   accessibilityState={{ selected: active }}
-                  onPress={() => setScreen(tab.screen)}
+                  onPress={() => openTab(tab.screen)}
                   style={styles.tab}
                 >
                   <View style={[styles.iconContainer, active && styles.activeIconContainer]}>
