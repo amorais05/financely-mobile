@@ -42,20 +42,6 @@ const shortDate = (value: string) => {
   return y && m && d ? `${d}/${m}/${y}` : '—';
 };
 
-async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 15000): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('O servidor demorou para responder. Tente atualizar novamente.');
-    }
-    throw error;
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 export default function DashboardScreen() {
   const [session, setSession] = useState<Session | null>(null);
@@ -76,8 +62,8 @@ export default function DashboardScreen() {
       const id = encodeURIComponent(String(saved.id_usuario));
       const headers = { Authorization: `Bearer ${saved.token}` };
       const [accountResponse, movementsResponse] = await Promise.all([
-        fetchWithTimeout(`${API_BASE_URL}/saldo-por-conta?id_usuario=${id}`, { headers }),
-        fetchWithTimeout(`${API_BASE_URL}/listar-transacoes?id_usuario=${id}&limite=5000`, { headers }),
+        fetch(`${API_BASE_URL}/saldo-por-conta?id_usuario=${id}`, { headers }),
+        fetch(`${API_BASE_URL}/listar-transacoes?id_usuario=${id}&limite=5000`, { headers }),
       ]);
       if (!accountResponse.ok || !movementsResponse.ok) {
         throw new Error('Não foi possível carregar os dados financeiros.');
@@ -94,8 +80,11 @@ export default function DashboardScreen() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro inesperado.';
       setError(
-        message === 'Failed to fetch' || message.includes('Network request failed')
-          ? 'Não foi possível conectar ao servidor. Verifique a internet e tente novamente.'
+        message === 'Failed to fetch'
+          || message.includes('Network request failed')
+          || message.includes('Fetch request has been canceled')
+          || message.includes('fetch failed')
+          ? 'Não foi possível carregar os dados do servidor. Toque em “Tentar novamente”.'
           : message,
       );
     } finally {
