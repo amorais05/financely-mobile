@@ -42,6 +42,7 @@ const shortDate = (value: string) => {
   return y && m && d ? `${d}/${m}/${y}` : '—';
 };
 
+
 export default function DashboardScreen() {
   const [session, setSession] = useState<Session | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -60,24 +61,55 @@ export default function DashboardScreen() {
       setSession(saved);
       const id = encodeURIComponent(String(saved.id_usuario));
       const headers = { Authorization: `Bearer ${saved.token}` };
-      const [accountResponse, movementsResponse] = await Promise.all([
+      const [accountResult, movementsResult] = await Promise.allSettled([
         fetch(`${API_BASE_URL}/saldo-por-conta?id_usuario=${id}`, { headers }),
-        fetch(`${API_BASE_URL}/listar-transacoes?id_usuario=${id}&limite=999999`, { headers }),
+        fetch(`${API_BASE_URL}/listar-transacoes?id_usuario=${id}&limite=5000`, { headers }),
       ]);
-      if (!accountResponse.ok || !movementsResponse.ok) {
-        throw new Error('Não foi possível carregar os dados financeiros.');
+
+      const failures: string[] = [];
+
+      if (accountResult.status === 'fulfilled') {
+        const response = accountResult.value;
+        if (response.ok) {
+          const accountData: unknown = await response.json();
+          if (Array.isArray(accountData)) setAccounts(accountData as Account[]);
+          else failures.push('contas: formato inválido');
+        } else {
+          failures.push(`contas: HTTP ${response.status}`);
+        }
+      } else {
+        failures.push(`contas: ${accountResult.reason instanceof Error ? accountResult.reason.message : 'falha de rede'}`);
       }
-      const accountData: unknown = await accountResponse.json();
-      const movementData: unknown = await movementsResponse.json();
-      if (!Array.isArray(accountData)) throw new Error('O servidor retornou contas em formato inválido.');
-      const list = Array.isArray(movementData) ? movementData :
-        (movementData && typeof movementData === 'object' && 'registros' in movementData)
-          ? (movementData as { registros: unknown }).registros : null;
-      if (!Array.isArray(list)) throw new Error('O servidor retornou lançamentos em formato inválido.');
-      setAccounts(accountData as Account[]);
-      setMovements(list as Movement[]);
+
+      if (movementsResult.status === 'fulfilled') {
+        const response = movementsResult.value;
+        if (response.ok) {
+          const movementData: unknown = await response.json();
+          const list = Array.isArray(movementData) ? movementData :
+            (movementData && typeof movementData === 'object' && 'registros' in movementData)
+              ? (movementData as { registros: unknown }).registros : null;
+          if (Array.isArray(list)) setMovements(list as Movement[]);
+          else failures.push('lançamentos: formato inválido');
+        } else {
+          failures.push(`lançamentos: HTTP ${response.status}`);
+        }
+      } else {
+        failures.push(`lançamentos: ${movementsResult.reason instanceof Error ? movementsResult.reason.message : 'falha de rede'}`);
+      }
+
+      if (failures.length > 0) {
+        setError(`Falha parcial ao carregar: ${failures.join(' • ')}`);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro inesperado.');
+      const message = err instanceof Error ? err.message : 'Erro inesperado.';
+      setError(
+        message === 'Failed to fetch'
+          || message.includes('Network request failed')
+          || message.includes('Fetch request has been canceled')
+          || message.includes('fetch failed')
+          ? 'Não foi possível carregar os dados do servidor. Toque em “Tentar novamente”.'
+          : message,
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);

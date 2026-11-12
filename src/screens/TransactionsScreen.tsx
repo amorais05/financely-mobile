@@ -20,7 +20,7 @@ function Choices({ items, value, onChange, allLabel }: { items: SelectOption[]; 
   </View>;
 }
 
-export default function TransactionsScreen() {
+export default function TransactionsScreen({ focusTransactionId, onFocusHandled }: { focusTransactionId?: number | null; onFocusHandled?: () => void }) {
   const [session, setSession] = useState<Session | null>(null);
   const [items, setItems] = useState<HistoryTransaction[]>([]);
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
@@ -38,6 +38,7 @@ export default function TransactionsScreen() {
   const [form, setForm] = useState<TransactionUpdate>({ descricao: '', valor: 0, data_transacao: '', id_conta: 0, id_categoria: 0, tipo_movimento: 'Saída' });
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
+  const [focusedTransactionId, setFocusedTransactionId] = useState<number | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -55,15 +56,20 @@ export default function TransactionsScreen() {
   }, []);
   useEffect(() => { void reload(); }, [reload]);
 
-  const filtered = useMemo(() => items.filter(t => {
-    const v = Number(t.valor);
-    const date = iso(t.data_transacao);
-    return t.descricao?.toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR'))
-      && (type === 'Todos' || (type === 'Entrada' ? v >= 0 : v < 0))
-      && (account === null || Number(t.id_conta) === account)
-      && (category === null || Number(t.id_categoria) === category)
-      && (!start || date >= start) && (!end || date <= end);
-  }), [items, query, type, account, category, start, end]);
+  const filtered = useMemo(() => {
+    if (focusedTransactionId !== null) {
+      return items.filter(t => Number(t.id_transacao) === focusedTransactionId);
+    }
+    return items.filter(t => {
+      const v = Number(t.valor);
+      const date = iso(t.data_transacao);
+      return t.descricao?.toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR'))
+        && (type === 'Todos' || (type === 'Entrada' ? v >= 0 : v < 0))
+        && (account === null || Number(t.id_conta) === account)
+        && (category === null || Number(t.id_categoria) === category)
+        && (!start || date >= start) && (!end || date <= end);
+    });
+  }, [items, query, type, account, category, start, end, focusedTransactionId]);
   const incoming = filtered.reduce((sum, t) => sum + Math.max(0, Number(t.valor) || 0), 0);
   const outgoing = filtered.reduce((sum, t) => sum + Math.abs(Math.min(0, Number(t.valor) || 0)), 0);
 
@@ -72,6 +78,22 @@ export default function TransactionsScreen() {
     setForm({ descricao: t.descricao || '', valor: Math.abs(Number(t.valor)), data_transacao: iso(t.data_transacao), id_conta: Number(t.id_conta) || 0, id_categoria: Number(t.id_categoria) || 0, tipo_movimento: Number(t.valor) < 0 ? 'Saída' : 'Entrada' });
     setEditValue(String(Math.abs(Number(t.valor))).replace('.', ','));
   };
+
+  useEffect(() => {
+    if (!focusTransactionId || loading || items.length === 0) return;
+    const target = items.find(t => Number(t.id_transacao) === Number(focusTransactionId));
+    if (target) {
+      setQuery('');
+      setType('Todos');
+      setAccount(null);
+      setCategory(null);
+      setStart('');
+      setEnd('');
+      setFocusedTransactionId(Number(target.id_transacao));
+      beginEdit(target);
+    }
+    onFocusHandled?.();
+  }, [focusTransactionId, items, loading, onFocusHandled]);
   const save = async () => {
     if (!session || editing === null || saving) return;
     const amount = toNumber(editValue);
@@ -105,11 +127,22 @@ export default function TransactionsScreen() {
     <Text style={styles.brand}>financely.</Text>
     <Text style={styles.heading}>Seus lançamentos</Text>
     <Text style={styles.caption}>Consulte e organize receitas e despesas.</Text>
+    {focusedTransactionId !== null ? (
+      <View style={styles.focusBanner}>
+        <View style={styles.flex}>
+          <Text style={styles.section}>Lançamento selecionado</Text>
+          <Text style={styles.caption}>Exibindo somente a movimentação escolhida no calendário.</Text>
+        </View>
+        <Pressable onPress={() => { setFocusedTransactionId(null); setEditing(null); }}>
+          <Text style={styles.link}>Mostrar todos</Text>
+        </Pressable>
+      </View>
+    ) : null}
     <View style={styles.summary}>
       <View style={styles.summaryCard}><Text style={styles.caption}>Entradas filtradas</Text><Text style={[styles.summaryValue, { color: theme.income }]}>{money(incoming)}</Text></View>
       <View style={styles.summaryCard}><Text style={styles.caption}>Saídas filtradas</Text><Text style={[styles.summaryValue, { color: theme.expense }]}>{money(outgoing)}</Text></View>
     </View>
-    <View style={styles.panel}>
+    {focusedTransactionId === null ? <View style={styles.panel}>
       <Text style={styles.section}>Filtros</Text>
       <TextInput style={styles.input} placeholder="Buscar pela descrição" placeholderTextColor={theme.muted} value={query} onChangeText={setQuery} />
       <View style={styles.chips}>{(['Todos', 'Entrada', 'Saída'] as const).map(v => <Pressable key={v} onPress={() => setType(v)} style={[styles.chip, type === v && styles.activeChip]}><Text style={[styles.chipText, type === v && styles.activeText]}>{v}</Text></Pressable>)}</View>
@@ -120,7 +153,7 @@ export default function TransactionsScreen() {
         <Pressable style={styles.dateButton} onPress={() => setDateTarget('end')}><Text style={styles.caption}>Até</Text><Text style={styles.dateText}>{end ? brDate(end) : 'Selecionar data'}</Text></Pressable>
       </View>
       <Pressable onPress={() => { setQuery(''); setType('Todos'); setAccount(null); setCategory(null); setStart(''); setEnd(''); }}><Text style={styles.link}>Limpar filtros</Text></Pressable>
-    </View>
+    </View> : null}
     {error ? <View style={styles.panel}><Text style={styles.error}>{error}</Text><Pressable onPress={() => void reload()}><Text style={styles.link}>Tentar novamente</Text></Pressable></View> : null}
     <Text style={styles.section}>{filtered.length} lançamento(s)</Text>
     {!loading && !error && filtered.length === 0 ? <Text style={styles.caption}>Nenhum lançamento encontrado.</Text> : null}
@@ -150,6 +183,7 @@ const styles = StyleSheet.create({
   caption: { color: theme.muted, fontSize: 12, lineHeight: 19 },
   section: { color: theme.text, fontWeight: '800', fontSize: 16 },
   panel: { backgroundColor: theme.white, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: theme.border, gap: 12 },
+  focusBanner: { backgroundColor: '#EEF2FF', padding: 14, borderRadius: 16, borderWidth: 1, borderColor: '#C7D2FE', flexDirection: 'row', alignItems: 'center', gap: 12 },
   summary: { flexDirection: 'row', gap: 10 },
   summaryCard: { flex: 1, backgroundColor: theme.white, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: theme.border },
   summaryValue: { fontSize: 17, fontWeight: '900', marginTop: 5 },
