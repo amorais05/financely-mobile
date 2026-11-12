@@ -20,7 +20,7 @@ function Choices({ items, value, onChange, allLabel }: { items: SelectOption[]; 
   </View>;
 }
 
-export default function TransactionsScreen() {
+export default function TransactionsScreen({ focusTransactionId, onFocusHandled }: { focusTransactionId?: number | null; onFocusHandled?: () => void }) {
   const [session, setSession] = useState<Session | null>(null);
   const [items, setItems] = useState<HistoryTransaction[]>([]);
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
@@ -72,6 +72,21 @@ export default function TransactionsScreen() {
     setForm({ descricao: t.descricao || '', valor: Math.abs(Number(t.valor)), data_transacao: iso(t.data_transacao), id_conta: Number(t.id_conta) || 0, id_categoria: Number(t.id_categoria) || 0, tipo_movimento: Number(t.valor) < 0 ? 'Saída' : 'Entrada' });
     setEditValue(String(Math.abs(Number(t.valor))).replace('.', ','));
   };
+
+  useEffect(() => {
+    if (!focusTransactionId || loading || items.length === 0) return;
+    const target = items.find(t => Number(t.id_transacao) === Number(focusTransactionId));
+    if (target) {
+      setQuery('');
+      setType('Todos');
+      setAccount(null);
+      setCategory(null);
+      setStart('');
+      setEnd('');
+      beginEdit(target);
+    }
+    onFocusHandled?.();
+  }, [focusTransactionId, items, loading, onFocusHandled]);
   const save = async () => {
     if (!session || editing === null || saving) return;
     const amount = toNumber(editValue);
