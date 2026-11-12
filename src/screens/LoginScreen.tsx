@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { login, type Session } from '../services/auth';
 import { theme } from '../constants/theme';
 
@@ -20,19 +31,50 @@ export default function LoginScreen({ onLogin }: { onLogin: (session: Session) =
     }
   }
 
-  return <View style={styles.container}>
-    <Text style={styles.title}>Entrar no Financely</Text>
-    <Text style={styles.subtitle}>Use a mesma conta do Financely Web.</Text>
-    <TextInput style={styles.input} placeholder="E-mail" keyboardType="email-address" autoCapitalize="none" autoComplete="email" value={email} onChangeText={setEmail} editable={!loading} />
-    <TextInput style={styles.input} placeholder="Senha" secureTextEntry autoComplete="password" value={senha} onChangeText={setSenha} editable={!loading} />
-    <Pressable style={styles.button} onPress={handleLogin} disabled={loading}>
-      {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Entrar</Text>}
-    </Pressable>
-  </View>;
+  return (
+    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View>
+          <Text style={styles.title}>Entrar no Financely</Text>
+          <Text style={styles.subtitle}>Use a mesma conta do Financely Web.</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="E-mail"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            value={email}
+            onChangeText={setEmail}
+            editable={!loading}
+            returnKeyType="next"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Senha"
+            secureTextEntry
+            autoComplete="password"
+            value={senha}
+            onChangeText={setSenha}
+            editable={!loading}
+            returnKeyType="done"
+            onSubmitEditing={() => void handleLogin()}
+          />
+          <Pressable style={styles.button} onPress={() => void handleLogin()} disabled={loading}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Entrar</Text>}
+          </Pressable>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: theme.background },
+  root: { flex: 1, backgroundColor: theme.background },
+  container: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   title: { fontSize: 27, fontWeight: '800', color: theme.primary, marginBottom: 8 },
   subtitle: { fontSize: 14, color: theme.muted, marginBottom: 24 },
   input: { backgroundColor: '#fff', borderWidth: 1, borderColor: theme.border, borderRadius: 12, padding: 14, marginBottom: 12, fontSize: 16 },
