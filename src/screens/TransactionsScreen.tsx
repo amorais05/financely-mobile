@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { DatePickerDialog } from '../components/DatePickerDialog';
 import { theme } from '../constants/theme';
 import { restoreSession, type Session } from '../services/auth';
 import { listAccounts, listCategories, type AccountOption, type CategoryOption } from '../services/transactions';
@@ -20,7 +20,7 @@ function Choices({ items, value, onChange, allLabel }: { items: SelectOption[]; 
   </View>;
 }
 
-export default function TransactionsScreen() {
+export default function TransactionsScreen({ focusTransactionId, onFocusHandled }: { focusTransactionId?: number | null; onFocusHandled?: () => void }) {
   const [session, setSession] = useState<Session | null>(null);
   const [items, setItems] = useState<HistoryTransaction[]>([]);
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
@@ -67,11 +67,18 @@ export default function TransactionsScreen() {
   const incoming = filtered.reduce((sum, t) => sum + Math.max(0, Number(t.valor) || 0), 0);
   const outgoing = filtered.reduce((sum, t) => sum + Math.abs(Math.min(0, Number(t.valor) || 0)), 0);
 
-  const beginEdit = (t: HistoryTransaction) => {
+  const beginEdit = useCallback((t: HistoryTransaction) => {
     setEditing(Number(t.id_transacao));
     setForm({ descricao: t.descricao || '', valor: Math.abs(Number(t.valor)), data_transacao: iso(t.data_transacao), id_conta: Number(t.id_conta) || 0, id_categoria: Number(t.id_categoria) || 0, tipo_movimento: Number(t.valor) < 0 ? 'Saída' : 'Entrada' });
     setEditValue(String(Math.abs(Number(t.valor))).replace('.', ','));
-  };
+  }, []);
+  useEffect(() => {
+    if (focusTransactionId == null || loading || error) return;
+    const target = items.find(t => Number(t.id_transacao) === focusTransactionId);
+    if (target) beginEdit(target);
+    else Alert.alert('Lançamento não encontrado', 'Atualize o calendário e tente novamente.');
+    onFocusHandled?.();
+  }, [focusTransactionId, loading, error, items, beginEdit, onFocusHandled]);
   const save = async () => {
     if (!session || editing === null || saving) return;
     const amount = toNumber(editValue);
@@ -94,16 +101,16 @@ export default function TransactionsScreen() {
     ]);
   };
   const dateValue = dateTarget === 'start' ? start : dateTarget === 'end' ? end : form.data_transacao;
-  const setPickedDate = (selected: Date) => {
-    const selectedIso = `${selected.getFullYear()}-${String(selected.getMonth() + 1).padStart(2, '0')}-${String(selected.getDate()).padStart(2, '0')}`;
+  const setPickedDate = (selectedIso: string) => {
     if (dateTarget === 'start') setStart(selectedIso);
     else if (dateTarget === 'end') setEnd(selectedIso);
     else setForm(current => ({ ...current, data_transacao: selectedIso }));
     setDateTarget(null);
   };
-  return <ScrollView style={styles.root} contentContainerStyle={styles.page} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void reload()} />}>
+  return <ScrollView key={editing === null ? 'history' : 'edit'} keyboardShouldPersistTaps="handled" style={styles.root} contentContainerStyle={styles.page} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void reload()} />}>
     <Text style={styles.brand}>financely.</Text>
-    <Text style={styles.heading}>Seus lançamentos</Text>
+    <Text style={styles.heading}>{editing === null ? 'Seus lançamentos' : 'Editar lançamento'}</Text>
+    {editing === null ? <>
     <Text style={styles.caption}>Consulte e organize receitas e despesas.</Text>
     <View style={styles.summary}>
       <View style={styles.summaryCard}><Text style={styles.caption}>Entradas filtradas</Text><Text style={[styles.summaryValue, { color: theme.income }]}>{money(incoming)}</Text></View>
@@ -122,22 +129,23 @@ export default function TransactionsScreen() {
       <Pressable onPress={() => { setQuery(''); setType('Todos'); setAccount(null); setCategory(null); setStart(''); setEnd(''); }}><Text style={styles.link}>Limpar filtros</Text></Pressable>
     </View>
     {error ? <View style={styles.panel}><Text style={styles.error}>{error}</Text><Pressable onPress={() => void reload()}><Text style={styles.link}>Tentar novamente</Text></Pressable></View> : null}
+    {loading ? <ActivityIndicator color={theme.primary} /> : null}
     <Text style={styles.section}>{filtered.length} lançamento(s)</Text>
     {!loading && !error && filtered.length === 0 ? <Text style={styles.caption}>Nenhum lançamento encontrado.</Text> : null}
     {filtered.map(t => <View key={t.id_transacao} style={styles.panel}>
       <View style={styles.between}><View style={styles.flex}><Text style={styles.itemTitle}>{t.descricao || 'Sem descrição'}</Text><Text style={styles.caption}>{brDate(t.data_transacao)} · {t.nome_conta || 'Conta'} · {t.nome_categoria || 'Categoria'}</Text></View><Text style={[styles.amount, { color: Number(t.valor) < 0 ? theme.expense : theme.income }]}>{money(Number(t.valor))}</Text></View>
       <View style={styles.actions}><Pressable onPress={() => beginEdit(t)}><Text style={styles.link}>Editar</Text></Pressable><Pressable onPress={() => confirmDelete(t)}><Text style={styles.remove}>Excluir</Text></Pressable></View>
     </View>)}
-    {editing !== null && <View style={styles.panel}><Text style={styles.section}>Editar lançamento</Text>
+    </> : <View style={styles.panel}>
       <Text style={styles.label}>Tipo</Text><View style={styles.chips}>{(['Entrada','Saída'] as const).map(v => <Pressable key={v} style={[styles.chip, form.tipo_movimento === v && styles.activeChip]} onPress={() => setForm(f => ({ ...f, tipo_movimento: v }))}><Text style={[styles.chipText, form.tipo_movimento === v && styles.activeText]}>{v}</Text></Pressable>)}</View>
       <Text style={styles.label}>Descrição</Text><TextInput style={styles.input} value={form.descricao} onChangeText={descricao => setForm(f => ({ ...f, descricao }))} />
       <Text style={styles.label}>Valor</Text><TextInput keyboardType="decimal-pad" style={styles.input} value={editValue} onChangeText={setEditValue} />
       <Text style={styles.label}>Data</Text><Pressable style={styles.dateButton} onPress={() => setDateTarget('edit')}><Text style={styles.dateText}>{brDate(form.data_transacao)}  📅</Text></Pressable>
       <Text style={styles.label}>Conta</Text><Choices items={accounts.map(a => ({ id: Number(a.id_conta), label: a.nome_conta }))} value={form.id_conta} onChange={id => setForm(f => ({ ...f, id_conta: id || 0 }))} />
       <Text style={styles.label}>Categoria</Text><Choices items={categories.map(c => ({ id: Number(c.id_categoria), label: c.nome_categoria }))} value={form.id_categoria} onChange={id => setForm(f => ({ ...f, id_categoria: id || 0 }))} />
-      <View style={styles.actions}><Pressable style={styles.saveButton} onPress={() => void save()} disabled={saving}><Text style={styles.saveText}>{saving ? 'Salvando...' : 'Salvar alterações'}</Text></Pressable><Pressable onPress={() => setEditing(null)}><Text style={styles.link}>Cancelar</Text></Pressable></View>
+      <View style={styles.actions}><Pressable style={styles.saveButton} onPress={() => void save()} disabled={saving}><Text style={styles.saveText}>{saving ? 'Salvando...' : 'Salvar alterações'}</Text></Pressable><Pressable disabled={saving} onPress={() => { setDateTarget(null); setEditing(null); }}><Text style={styles.link}>Cancelar</Text></Pressable></View>
     </View>}
-    {dateTarget && <DateTimePicker value={validDate(dateValue) ? new Date(dateValue + 'T12:00:00') : new Date()} mode="date" locale="pt-BR" display="compact" onChange={(_, date) => { if (date) setPickedDate(date); else setDateTarget(null); }} />}
+    {dateTarget && <DatePickerDialog value={dateValue} onConfirm={setPickedDate} onCancel={() => setDateTarget(null)} />}
     <Text style={styles.footer}>Puxe para baixo para atualizar. As alterações são salvas no mesmo backend do Web.</Text>
   </ScrollView>;
 }
