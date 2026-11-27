@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View 
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { theme } from '../constants/theme';
+import { friendlyError } from '../services/errors';
 import { restoreSession, type Session } from '../services/auth';
 import { createCategory, deleteCategory, fetchCategories, updateCategory, type FinancialCategory } from '../services/categories';
 
@@ -24,7 +25,7 @@ export default function CategoriesScreen() {
       if (!current) throw new Error('Sua sessão expirou. Faça login novamente.');
       setSession(current);
       setItems(await fetchCategories(current));
-    } catch (e) { setError(e instanceof Error ? e.message : 'Falha ao carregar categorias.'); }
+    } catch (e) { setError(friendlyError(e, 'Falha ao carregar categorias.')); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void load(); }, [load]);
@@ -46,7 +47,7 @@ export default function CategoriesScreen() {
       closeForm();
       setMessage(editing ? 'Categoria atualizada com sucesso.' : 'Categoria cadastrada com sucesso.');
       await load();
-    } catch (e) { setError(e instanceof Error ? e.message : 'Erro ao salvar categoria.'); }
+    } catch (e) { setError(friendlyError(e, 'Erro ao salvar categoria.')); }
     finally { setSaving(false); }
   }
 
@@ -58,7 +59,7 @@ export default function CategoriesScreen() {
         setSaving(true); setError(''); setMessage('');
         void deleteCategory(session, item)
           .then(async () => { setMessage('Categoria excluída.'); await load(); })
-          .catch(e => setError(e instanceof Error ? e.message : 'Erro ao excluir categoria.'))
+          .catch(e => setError(friendlyError(e, 'Erro ao excluir categoria.')))
           .finally(() => setSaving(false));
       } },
     ]);
