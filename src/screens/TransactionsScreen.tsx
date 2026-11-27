@@ -103,15 +103,20 @@ export default function TransactionsScreen({ focusTransactionId, onFocusHandled 
   };
   const dateValue = dateTarget === 'start' ? start : dateTarget === 'end' ? end : form.data_transacao;
   const setPickedDate = (selectedIso: string) => {
-    if (dateTarget === 'start') setStart(selectedIso);
-    else if (dateTarget === 'end') setEnd(selectedIso);
+    if (dateTarget === 'start') {
+      if (end && selectedIso > end) { Alert.alert('Período inválido', 'A data inicial não pode ser posterior à data final.'); setDateTarget(null); return; }
+      setStart(selectedIso);
+    } else if (dateTarget === 'end') {
+      if (start && selectedIso < start) { Alert.alert('Período inválido', 'A data final não pode ser anterior à data inicial.'); setDateTarget(null); return; }
+      setEnd(selectedIso);
+    }
     else setForm(current => ({ ...current, data_transacao: selectedIso }));
     setDateTarget(null);
   };
   return <ScrollView key={editing === null ? 'history' : 'edit'} keyboardShouldPersistTaps="handled" style={styles.root} contentContainerStyle={styles.page} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void reload()} />}>
     <Text style={styles.brand}>financely.</Text>
     <Text style={styles.heading}>{editing === null ? 'Seus lançamentos' : 'Editar lançamento'}</Text>
-    {editing === null ? <>
+    {focusTransactionId != null && !error && editing === null ? <ActivityIndicator color={theme.primary} /> : editing === null ? <>
     <Text style={styles.caption}>Consulte e organize receitas e despesas.</Text>
     <View style={styles.summary}>
       <View style={styles.summaryCard}><Text style={styles.caption}>Entradas filtradas</Text><Text style={[styles.summaryValue, { color: theme.income }]}>{money(incoming)}</Text></View>
