@@ -3,11 +3,12 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { ScreenLayout } from '../components/ScreenLayout';
 import { FinancialReminder } from '../components/FinancialReminder';
 import { theme } from '../constants/theme';
+import { friendlyError } from '../services/errors';
 import { restoreSession } from '../services/auth';
 import { brl, listTransactions, type FinancialTransaction } from '../services/financial';
 export default function CalendarScreen({ onOpenTransaction }: { onOpenTransaction: (id: number) => void }) {
  const [items,setItems]=useState<FinancialTransaction[]>([]);const [date,setDate]=useState(new Date());const [selected,setSelected]=useState(new Date().getDate());const [loading,setLoading]=useState(true);const [error,setError]=useState('');
- const load=useCallback(async()=>{setLoading(true);setError('');try{const s=await restoreSession();if(!s)throw new Error('Faça login novamente.');setItems(await listTransactions(s));}catch(e){setError(e instanceof Error?e.message:'Falha ao carregar lançamentos.');}finally{setLoading(false);}},[]);
+ const load=useCallback(async()=>{setLoading(true);setError('');try{const s=await restoreSession();if(!s)throw new Error('Faça login novamente.');setItems(await listTransactions(s));}catch(e){setError(friendlyError(e, 'Falha ao carregar lançamentos.'));}finally{setLoading(false);}},[]);
  useEffect(()=>{void load();},[load]);
  const year=date.getFullYear(),month=date.getMonth(),first=new Date(year,month,1).getDay(),last=new Date(year,month+1,0).getDate();
  const iso=`${year}-${String(month+1).padStart(2,'0')}-${String(selected).padStart(2,'0')}`;
