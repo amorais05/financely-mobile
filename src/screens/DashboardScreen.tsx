@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../services/api';
+import { friendlyError } from '../services/errors';
 import { restoreSession, type Session } from '../services/auth';
 import { theme } from '../constants/theme';
 
@@ -49,6 +50,7 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   const load = useCallback(async (initial = false) => {
     if (initial) setLoading(true);
@@ -76,8 +78,9 @@ export default function DashboardScreen() {
       if (!Array.isArray(list)) throw new Error('O servidor retornou lançamentos em formato inválido.');
       setAccounts(accountData as Account[]);
       setMovements(list as Movement[]);
+      setHasLoaded(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro inesperado.');
+      setError(friendlyError(err, 'Não foi possível carregar os dados financeiros.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -118,7 +121,8 @@ export default function DashboardScreen() {
 
       {loading ? <ActivityIndicator style={{ marginVertical: 46 }} size="large" color={theme.primary} /> : (
         <>
-          {!!error && <View style={styles.warning}><Text style={styles.warningText}>{error}</Text><Pressable onPress={() => void load()}><Text style={styles.retry}>Tentar novamente</Text></Pressable></View>}
+          {!!error && <View style={styles.warning}><Text style={styles.warningText}>{error}{hasLoaded ? ' Exibindo os últimos dados carregados; eles podem estar desatualizados.' : ''}</Text><Pressable onPress={() => void load()}><Text style={styles.retry}>Tentar novamente</Text></Pressable></View>}
+          {!hasLoaded ? <Text style={styles.empty}>{refreshing ? 'Consultando dados financeiros...' : 'Dados financeiros indisponíveis. Atualize para consultar seu saldo.'}</Text> : <>
           <View style={styles.hero}>
             <View style={styles.heroTop}><Ionicons name="wallet-outline" color="#C7D2FE" size={21} /><Text style={styles.heroLabel}>Saldo disponível hoje</Text></View>
             <Text style={styles.heroValue} adjustsFontSizeToFit numberOfLines={1}>{money(total)}</Text>
@@ -161,6 +165,7 @@ export default function DashboardScreen() {
               <Text style={[styles.transactionValue, { color: positive ? '#059669' : theme.text }]}>{positive ? '+' : '−'}{money(Math.abs(amount(item.valor)))}</Text>
             </View>;
           })}
+          </>}
         </>
       )}
     </ScrollView>
