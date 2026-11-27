@@ -28,6 +28,7 @@ export default function AppNavigator() {
   const [screen, setScreen] = useState<Screen | 'Boas-vindas'>('Boas-vindas');
   const [session, setSession] = useState<Session | null>(null);
   const [restoring, setRestoring] = useState(true);
+  const [transactionTarget, setTransactionTarget] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -45,6 +46,7 @@ export default function AppNavigator() {
     try {
       await logout();
       setSession(null);
+      setTransactionTarget(null);
       setScreen('Boas-vindas');
     } catch {
       // Mantém acesso protegido caso não seja possível remover a sessão segura.
@@ -69,9 +71,9 @@ export default function AppNavigator() {
       case 'Login': return <LoginScreen onLogin={saved => { setSession(saved); setScreen('Início'); }} />;
       case 'Cadastro': return <RegisterScreen onRegistered={() => setScreen('Login')} />;
       case 'Início': return <DashboardScreen />;
-      case 'Lançamentos': return <TransactionsScreen />;
+      case 'Lançamentos': return <TransactionsScreen focusTransactionId={transactionTarget} onFocusHandled={() => setTransactionTarget(null)} />;
       case 'Novo': return <NewTransactionScreen />;
-      case 'Calendário': return <CalendarScreen />;
+      case 'Calendário': return <CalendarScreen onOpenTransaction={id => { setTransactionTarget(id); setScreen('Lançamentos'); }} />;
       case 'Perfil': return <ProfileScreen />;
       case 'Contas': return <AccountsScreen />;
       case 'Categorias': return <CategoriesScreen />;
@@ -131,7 +133,7 @@ export default function AppNavigator() {
                   accessibilityRole="tab"
                   accessibilityLabel={tab.label}
                   accessibilityState={{ selected: active }}
-                  onPress={() => setScreen(tab.screen)}
+                  onPress={() => { setTransactionTarget(null); setScreen(tab.screen); }}
                   style={styles.tab}
                 >
                   <View style={[styles.iconContainer, active && styles.activeIconContainer]}>
