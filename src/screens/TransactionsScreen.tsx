@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { DatePickerDialog } from '../components/DatePickerDialog';
 import { theme } from '../constants/theme';
+import { friendlyError } from '../services/errors';
 import { restoreSession, type Session } from '../services/auth';
 import { listAccounts, listCategories, type AccountOption, type CategoryOption } from '../services/transactions';
 import { deleteTransaction, loadTransactionHistory, updateTransaction, type HistoryTransaction, type TransactionUpdate } from '../services/transactionHistory';
@@ -50,7 +51,7 @@ export default function TransactionsScreen({ focusTransactionId, onFocusHandled 
       setItems(transactions);
       setAccounts(accountList);
       setCategories(categoryList);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Falha ao buscar lançamentos.'); }
+    } catch (e) { setError(friendlyError(e, 'Falha ao buscar lançamentos.')); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void reload(); }, [reload]);
@@ -87,7 +88,7 @@ export default function TransactionsScreen({ focusTransactionId, onFocusHandled 
     }
     setSaving(true);
     try { await updateTransaction(session, editing, { ...form, valor: amount }); setEditing(null); await reload(); Alert.alert('Tudo certo!', 'Lançamento atualizado no Financely.'); }
-    catch (e) { Alert.alert('Erro ao salvar', e instanceof Error ? e.message : 'Tente novamente.'); }
+    catch (e) { Alert.alert('Erro ao salvar', friendlyError(e, 'Tente novamente.')); }
     finally { setSaving(false); }
   };
   const confirmDelete = (t: HistoryTransaction) => {
@@ -96,7 +97,7 @@ export default function TransactionsScreen({ focusTransactionId, onFocusHandled 
       { text: 'Excluir', style: 'destructive', onPress: async () => {
         if (!session) return;
         try { await deleteTransaction(session, Number(t.id_transacao)); await reload(); }
-        catch (e) { Alert.alert('Erro ao excluir', e instanceof Error ? e.message : 'Tente novamente.'); }
+        catch (e) { Alert.alert('Erro ao excluir', friendlyError(e, 'Tente novamente.')); }
       } },
     ]);
   };
