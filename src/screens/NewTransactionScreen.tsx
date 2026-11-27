@@ -12,6 +12,7 @@ import { CurrentLocation } from '../components/CurrentLocation';
 import { ReceiptCapture } from '../components/ReceiptCapture';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { theme } from '../constants/theme';
+import { friendlyError } from '../services/errors';
 import { restoreSession, type Session } from '../services/auth';
 import {
   createTransaction,
@@ -70,7 +71,7 @@ export default function NewTransactionScreen() {
         setAccounts(accountData);
         setCategories(categoryData);
       } catch (err) {
-        if (active) setError(err instanceof Error ? err.message : 'Não foi possível carregar contas e categorias.');
+        if (active) setError(friendlyError(err, 'Não foi possível carregar contas e categorias.'));
       } finally {
         if (active) setLoadingOptions(false);
       }
@@ -130,7 +131,7 @@ export default function NewTransactionScreen() {
       setDate(today());
       setSuccess(`${movement} cadastrada com sucesso e sincronizada com o Financely Web.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Não foi possível salvar o lançamento.');
+      setError(friendlyError(err, 'Não foi possível salvar o lançamento.'));
     } finally {
       setSaving(false);
     }
