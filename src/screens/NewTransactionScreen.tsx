@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { DatePickerDialog } from '../components/DatePickerDialog';
+import { DateField } from '../components/DateField';
 import {
   ActivityIndicator,
   Pressable,
@@ -51,7 +51,6 @@ export default function NewTransactionScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -172,26 +171,7 @@ export default function NewTransactionScreen() {
           />
         </View>
 
-        <View style={styles.field}>
-          <Text style={styles.label}>Data</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Selecionar data"
-            style={[styles.input, styles.dateInput]}
-            onPress={() => setShowDatePicker(true)}
-          >
-            <Text style={styles.dateText}>
-              {date.split('-').reverse().join('/')}
-            </Text>
-            <Text style={styles.calendarIcon}>📅</Text>
-          </Pressable>
-
-          {showDatePicker && (
-            <DatePickerDialog value={date}
-              onConfirm={selected => { setDate(selected); setShowDatePicker(false); }}
-              onCancel={() => setShowDatePicker(false)} />
-          )}
-        </View>
+        <DateField label="Data" value={date} onChange={setDate} disabled={saving} />
 
         <View style={styles.field}>
           <Text style={styles.label}>Descrição</Text>
@@ -317,14 +297,6 @@ const styles = StyleSheet.create({
     color: theme.text,
     fontSize: 15,
   },
-  dateInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 0,
-  },
-  dateText: { color: theme.text, fontSize: 15 },
-  calendarIcon: { fontSize: 20 },
   descriptionInput: { minHeight: 76, paddingTop: 13, textAlignVertical: 'top' },
   loadingBox: { alignItems: 'center', gap: 8, paddingVertical: 8 },
   helper: { color: theme.muted, fontSize: 12, lineHeight: 18 },
