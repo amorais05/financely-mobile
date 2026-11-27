@@ -4,7 +4,7 @@ import { theme } from '../constants/theme';
 
 export function ScreenLayout({ title, description, children }: { title: string; description: string; children?: React.ReactNode }) {
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
       <Text style={styles.brand}>Financely.</Text>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.description}>{description}</Text>
