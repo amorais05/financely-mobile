@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { DatePickerDialog } from '../components/DatePickerDialog';
 import {
   ActivityIndicator,
   Pressable,
@@ -33,7 +33,7 @@ function today() {
 function isValidDate(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = new Date(`${value}T00:00:00`);
-  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+  return !Number.isNaN(parsed.getTime()) && parsed.getFullYear() === Number(value.slice(0, 4)) && parsed.getMonth() + 1 === Number(value.slice(5, 7)) && parsed.getDate() === Number(value.slice(8, 10));
 }
 
 export default function NewTransactionScreen() {
@@ -177,7 +177,7 @@ export default function NewTransactionScreen() {
             accessibilityRole="button"
             accessibilityLabel="Selecionar data"
             style={[styles.input, styles.dateInput]}
-            onPress={() => setShowDatePicker(!showDatePicker)}
+            onPress={() => setShowDatePicker(true)}
           >
             <Text style={styles.dateText}>
               {date.split('-').reverse().join('/')}
@@ -186,21 +186,9 @@ export default function NewTransactionScreen() {
           </Pressable>
 
           {showDatePicker && (
-            <DateTimePicker
-              value={new Date(`${date}T12:00:00`)}
-              mode="date"
-              display="compact"
-              locale="pt-BR"
-              onChange={(_, selectedDate) => {
-                if (selectedDate) {
-                  const year = selectedDate.getFullYear();
-                  const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-                  const day = String(selectedDate.getDate()).padStart(2, '0');
-                  setDate(`${year}-${month}-${day}`);
-                }
-                setShowDatePicker(false);
-              }}
-            />
+            <DatePickerDialog value={date}
+              onConfirm={selected => { setDate(selected); setShowDatePicker(false); }}
+              onCancel={() => setShowDatePicker(false)} />
           )}
         </View>
 
