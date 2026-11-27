@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { DatePickerDialog } from '../components/DatePickerDialog';
+import { DateField } from '../components/DateField';
 import { theme } from '../constants/theme';
 import { friendlyError } from '../services/errors';
 import { restoreSession, type Session } from '../services/auth';
@@ -34,7 +34,7 @@ export default function TransactionsScreen({ focusTransactionId, onFocusHandled 
   const [category, setCategory] = useState<number | null>(null);
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
-  const [dateTarget, setDateTarget] = useState<'start' | 'end' | 'edit' | null>(null);
+  const [dateFilterError, setDateFilterError] = useState('');
   const [editing, setEditing] = useState<number | null>(null);
   const [form, setForm] = useState<TransactionUpdate>({ descricao: '', valor: 0, data_transacao: '', id_conta: 0, id_categoria: 0, tipo_movimento: 'Saída' });
   const [editValue, setEditValue] = useState('');
@@ -101,17 +101,15 @@ export default function TransactionsScreen({ focusTransactionId, onFocusHandled 
       } },
     ]);
   };
-  const dateValue = dateTarget === 'start' ? start : dateTarget === 'end' ? end : form.data_transacao;
-  const setPickedDate = (selectedIso: string) => {
-    if (dateTarget === 'start') {
-      if (end && selectedIso > end) { Alert.alert('Período inválido', 'A data inicial não pode ser posterior à data final.'); setDateTarget(null); return; }
-      setStart(selectedIso);
-    } else if (dateTarget === 'end') {
-      if (start && selectedIso < start) { Alert.alert('Período inválido', 'A data final não pode ser anterior à data inicial.'); setDateTarget(null); return; }
-      setEnd(selectedIso);
-    }
-    else setForm(current => ({ ...current, data_transacao: selectedIso }));
-    setDateTarget(null);
+  const pickStart = (date: string) => {
+    if (end && date > end) { setDateFilterError('A data inicial não pode ser posterior à data final.'); return; }
+    setStart(date);
+    setDateFilterError('');
+  };
+  const pickEnd = (date: string) => {
+    if (start && date < start) { setDateFilterError('A data final não pode ser anterior à data inicial.'); return; }
+    setEnd(date);
+    setDateFilterError('');
   };
   return <ScrollView key={editing === null ? 'history' : 'edit'} keyboardShouldPersistTaps="handled" style={styles.root} contentContainerStyle={styles.page} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void reload()} />}>
     <Text style={styles.brand}>financely.</Text>
@@ -129,10 +127,11 @@ export default function TransactionsScreen({ focusTransactionId, onFocusHandled 
       <Text style={styles.label}>Conta</Text><Choices allLabel="Todas" items={accounts.map(a => ({ id: Number(a.id_conta), label: a.nome_conta }))} value={account} onChange={setAccount} />
       <Text style={styles.label}>Categoria</Text><Choices allLabel="Todas" items={categories.map(c => ({ id: Number(c.id_categoria), label: c.nome_categoria }))} value={category} onChange={setCategory} />
       <View style={styles.summary}>
-        <Pressable style={styles.dateButton} onPress={() => setDateTarget('start')}><Text style={styles.caption}>De</Text><Text style={styles.dateText}>{start ? brDate(start) : 'Selecionar data'}</Text></Pressable>
-        <Pressable style={styles.dateButton} onPress={() => setDateTarget('end')}><Text style={styles.caption}>Até</Text><Text style={styles.dateText}>{end ? brDate(end) : 'Selecionar data'}</Text></Pressable>
+        <DateField label="De" value={start} onChange={pickStart} style={styles.flex} />
+        <DateField label="Até" value={end} onChange={pickEnd} style={styles.flex} />
       </View>
-      <Pressable onPress={() => { setQuery(''); setType('Todos'); setAccount(null); setCategory(null); setStart(''); setEnd(''); }}><Text style={styles.link}>Limpar filtros</Text></Pressable>
+      {dateFilterError ? <Text style={styles.error}>{dateFilterError}</Text> : null}
+      <Pressable onPress={() => { setQuery(''); setType('Todos'); setAccount(null); setCategory(null); setStart(''); setEnd(''); setDateFilterError(''); }}><Text style={styles.link}>Limpar filtros</Text></Pressable>
     </View>
     {error ? <View style={styles.panel}><Text style={styles.error}>{error}</Text><Pressable onPress={() => void reload()}><Text style={styles.link}>Tentar novamente</Text></Pressable></View> : null}
     {loading ? <ActivityIndicator color={theme.primary} /> : null}
@@ -146,12 +145,11 @@ export default function TransactionsScreen({ focusTransactionId, onFocusHandled 
       <Text style={styles.label}>Tipo</Text><View style={styles.chips}>{(['Entrada','Saída'] as const).map(v => <Pressable key={v} style={[styles.chip, form.tipo_movimento === v && styles.activeChip]} onPress={() => setForm(f => ({ ...f, tipo_movimento: v }))}><Text style={[styles.chipText, form.tipo_movimento === v && styles.activeText]}>{v}</Text></Pressable>)}</View>
       <Text style={styles.label}>Descrição</Text><TextInput style={styles.input} value={form.descricao} onChangeText={descricao => setForm(f => ({ ...f, descricao }))} />
       <Text style={styles.label}>Valor</Text><TextInput keyboardType="decimal-pad" style={styles.input} value={editValue} onChangeText={setEditValue} />
-      <Text style={styles.label}>Data</Text><Pressable style={styles.dateButton} onPress={() => setDateTarget('edit')}><Text style={styles.dateText}>{brDate(form.data_transacao)}  📅</Text></Pressable>
+      <DateField label="Data" value={form.data_transacao} onChange={date => setForm(current => ({ ...current, data_transacao: date }))} disabled={saving} />
       <Text style={styles.label}>Conta</Text><Choices items={accounts.map(a => ({ id: Number(a.id_conta), label: a.nome_conta }))} value={form.id_conta} onChange={id => setForm(f => ({ ...f, id_conta: id || 0 }))} />
       <Text style={styles.label}>Categoria</Text><Choices items={categories.map(c => ({ id: Number(c.id_categoria), label: c.nome_categoria }))} value={form.id_categoria} onChange={id => setForm(f => ({ ...f, id_categoria: id || 0 }))} />
-      <View style={styles.actions}><Pressable style={styles.saveButton} onPress={() => void save()} disabled={saving}><Text style={styles.saveText}>{saving ? 'Salvando...' : 'Salvar alterações'}</Text></Pressable><Pressable disabled={saving} onPress={() => { setDateTarget(null); setEditing(null); }}><Text style={styles.link}>Cancelar</Text></Pressable></View>
+      <View style={styles.actions}><Pressable style={styles.saveButton} onPress={() => void save()} disabled={saving}><Text style={styles.saveText}>{saving ? 'Salvando...' : 'Salvar alterações'}</Text></Pressable><Pressable disabled={saving} onPress={() => setEditing(null)}><Text style={styles.link}>Cancelar</Text></Pressable></View>
     </View>}
-    {dateTarget && <DatePickerDialog value={dateValue} onConfirm={setPickedDate} onCancel={() => setDateTarget(null)} />}
     <Text style={styles.footer}>Puxe para baixo para atualizar. As alterações são salvas no mesmo backend do Web.</Text>
   </ScrollView>;
 }
@@ -174,8 +172,6 @@ const styles = StyleSheet.create({
   activeChip: { backgroundColor: theme.primary, borderColor: theme.primary },
   chipText: { fontSize: 12, color: theme.muted, fontWeight: '700' },
   activeText: { color: theme.white },
-  dateButton: { flex: 1, backgroundColor: theme.background, borderWidth: 1, borderColor: theme.border, padding: 12, borderRadius: 12, justifyContent: 'center', minHeight: 51 },
-  dateText: { color: theme.text, fontWeight: '700', fontSize: 13 },
   link: { color: theme.primary, fontWeight: '800', fontSize: 13 },
   error: { color: theme.expense, fontWeight: '700' },
   between: { flexDirection: 'row', gap: 9, justifyContent: 'space-between', alignItems: 'flex-start' },
