@@ -18,7 +18,16 @@ async function checked(response: Response): Promise<any> {
   const raw = await response.text();
   let data: any = {};
   try { data = raw ? JSON.parse(raw) : {}; } catch { data = {}; }
-  if (!response.ok) throw new Error(data.erro || data.error || `Erro ao comunicar com o servidor (${response.status}).`);
+  if (!response.ok) {
+    const message = String(data.erro || data.error || '');
+    if (response.status === 409 || String(data.code) === '23505' || /duplicate key|unique constraint|23505/i.test(message)) {
+      throw new Error('Já existe uma categoria com esse nome. Escolha outro nome.');
+    }
+    if (/violates foreign key constraint|23503/i.test(message)) {
+      throw new Error('Esta categoria está vinculada a lançamentos e não pode ser excluída.');
+    }
+    throw new Error(message || `Não foi possível concluir a operação (${response.status}).`);
+  }
   return data;
 }
 
